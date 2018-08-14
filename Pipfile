@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+requests = "*"
+pytest = "*"
+sphinx = "*"
+tox = "*"
+"flake8" = "*"
+pytest-cov = "*"
+alabaster = "*"
+
+[packages]
+proxipy = {editable = true, path = "."}
