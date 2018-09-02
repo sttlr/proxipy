@@ -8,6 +8,20 @@ from functools import wraps
 from typing import Callable, Union
 
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s:'
+                                  '%(funcName)s > %(message)s',
+                              datefmt='%d/%m %I:%M:%S')
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+
+
 def return_dict(func: Callable) -> Callable:
 
     @wraps(func)
@@ -62,19 +76,6 @@ class proxipy:
     def __init__(self, type_: str='http', https: bool=True, last_check: int=60,
                  limit: int=1, country: str=None, port: int=None, **kwargs):
         self._logger = logging.getLogger(__name__)
-        self._logger.propagate = False  # Fixes double output
-        self._logger.setLevel(logging.DEBUG)
-
-        if not self._logger.handlers:
-            self.formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s:'
-                                                   '%(funcName)s > %(message)s',
-                                               datefmt='%d/%m %I:%M:%S')
-
-            self.handler = logging.StreamHandler()
-            self.handler.setLevel(logging.INFO)
-            self.handler.setFormatter(self.formatter)
-
-            self._logger.addHandler(self.handler)
 
         if type_ in ['http', 'socks4', 'socks5']:
             self.type_ = type_
@@ -162,6 +163,11 @@ class proxipy:
 
         return self.proxies
 
+'''
+class aioproxipy:
+
+    def __init__()
+'''
 
 class WrongConnType(Exception):
     '''Raised when ``type_`` param is not "http" or "socks4" or "socks5".'''
