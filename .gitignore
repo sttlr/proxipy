@@ -1,20 +1,14 @@
-*.pyc
-proxipy/__pycache__
 .pytest_cache/
-tests/__pycache__
+*.pyc
 
 dist/
 build/
-proxipy.egg-info/
+docs/_build
+
 .eggs/
+proxipy.egg-info/
 *.egg
 
-docs/_build
-+docs/_status
-+docs/_templates
-
 .coverage
-
-env/
 
 .tox/
