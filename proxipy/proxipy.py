@@ -4,7 +4,9 @@ import requests
 import logging
 import re
 
-from functools import wraps
+import asyncio
+
+from functools import wraps, partial
 from typing import Callable, Union
 
 
@@ -163,11 +165,14 @@ class proxipy:
 
         return self.proxies
 
-'''
-class aioproxipy:
 
-    def __init__()
-'''
+async def aioproxipy(*args, **kwargs):
+    '''Asynchronous version of proxipy.
+    '''
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(proxipy, *args, **kwargs))
+
 
 class WrongConnType(Exception):
     '''Raised when ``type_`` param is not "http" or "socks4" or "socks5".'''

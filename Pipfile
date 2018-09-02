@@ -3,7 +3,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-[dev-packages]
+[packages]
 requests = "*"
 pytest = "*"
 sphinx = "*"
@@ -11,6 +11,10 @@ tox = "*"
 "flake8" = "*"
 pytest-cov = "*"
 alabaster = "*"
+aiohttp = "*"
 
-[packages]
+[dev-packages]
 proxipy = {editable = true, path = "."}
+
+[requires]
+python_version = "3.7"
