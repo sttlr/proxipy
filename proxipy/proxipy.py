@@ -5,6 +5,7 @@ import logging
 import re
 
 import asyncio
+import aiohttp
 
 from functools import wraps, partial
 from typing import Callable, Union
@@ -119,6 +120,14 @@ class proxipy:
         self.referrer = kwargs.get('referrer', None)
         self.format = 'txt'
 
+        # Ready dict with all params
+        self._params = dict(type=self.type_, https=self.https,
+                            last_check=self.last_check, limit=self.limit,
+                            country=self.country, port=self.port,
+                            post=self.post, user_agent=self.user_agent,
+                            cookies=self.cookies, referrer=self.referrer,
+                            format=self.format)
+
     def get_proxies(self) -> Union[dict, tuple]:
         '''Actually making request to proxy service. **NOT** an interface, use just :class:`proxipy.proxipy`.
 
@@ -126,13 +135,6 @@ class proxipy:
            :raises: :class:`TemporaryBlocked`, if making more than 1 request per second.
            :raises: :class:`NoProxyFound`, if there is no proxy to your filters.
         '''
-
-        self._params = dict(type=self.type_, https=self.https,
-                            last_check=self.last_check, limit=self.limit,
-                            country=self.country, port=self.port,
-                            post=self.post, user_agent=self.user_agent,
-                            cookies=self.cookies, referrer=self.referrer,
-                            format=self.format)
 
         self._logger.debug('Making request to proxy service with params %s',
                            self._params)
@@ -166,12 +168,69 @@ class proxipy:
         return self.proxies
 
 
-async def aioproxipy(*args, **kwargs):
+def aio_return_dict(func: Callable) -> Callable:
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs) -> Union[dict, tuple]:
+        proxies = await func(*args, **kwargs).get_proxies()
+
+        if kwargs.get('limit', 1) > 1:
+            proxies_tuple = ()
+            for prox in proxies:
+                proxies_tuple += (dict(http=prox, https=prox),)
+            return proxies_tuple
+        else:
+            return dict(http=proxies[0], https=proxies[0])
+
+    return wrapper
+
+
+@aio_return_dict
+class aioproxipy(proxipy):
     '''Asynchronous version of proxipy.
     '''
 
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, partial(proxipy, *args, **kwargs))
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loop = asyncio.get_event_loop()
+
+    async def get_proxies(self) -> Union[dict, tuple]:
+        self.callback(self._logger.debug, f'Making request to proxy service '
+                                          'with params {self._params}')
+
+        try:
+            timeout = aiohttp.ClientTimeout(sock_connect=5, sock_read=6)
+            async with aiohttp.ClientSession(tiemout=timeout) as session:
+                async with session.get('http://pubproxy.com/api/proxy',
+                                       params=self._params) as resp:
+                    self._source = await resp.text()
+
+        except Exception as e:
+            raise ServiceUnavailable('Cannot connect to service.')
+
+        if '#premium' in self._source:
+            raise TemporaryBlocked('Too many requests per second.')
+
+        if self._source == 'No proxy':
+            raise NoProxyFound('There is no proxy to your filters. '
+                               'Please, try to change it.')
+
+        self._to_proxies = self._source.split()
+        self.proxies = ()
+
+        for proxy in self._to_proxies[::-1]:
+            self.proxies += ('http://{}'.format(self._to_proxies.pop()),)
+
+        if self.limit > 1:
+            self.callback(self._logger.info, f'Got proxy {self.proxies}')
+        else:
+            self.callback(self._logger.info, f'Got proxy {self.proxies[0]}')
+
+        return self.proxies
+
+    async def callback(self, func, *args, **kwargs):
+        self.__func = partial(func, *args, **kwargs)
+        await self.loop.run_in_executor(None, self.__func)
 
 
 class WrongConnType(Exception):
