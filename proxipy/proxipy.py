@@ -121,11 +121,15 @@ class proxipy:
         self.format = 'txt'
 
         # Ready dict with all params
-        self._params = dict(type=self.type_, https=self.https,
-                            last_check=self.last_check, limit=self.limit,
-                            country=self.country, port=self.port,
-                            post=self.post, user_agent=self.user_agent,
-                            cookies=self.cookies, referrer=self.referrer,
+        self._params = dict(type=self.type_, https=self.stringify(self.https),
+                            last_check=self.stringify(self.last_check),
+                            limit=self.limit,
+                            country=self.stringify(self.country),
+                            port=self.stringify(self.port),
+                            post=self.stringify(self.post),
+                            user_agent=self.stringify(self.user_agent),
+                            cookies=self.stringify(self.cookies),
+                            referrer=self.stringify(self.referrer),
                             format=self.format)
 
     def get_proxies(self) -> Union[dict, tuple]:
@@ -167,6 +171,18 @@ class proxipy:
 
         return self.proxies
 
+    def stringify(self, val: Union[bool, None]) -> str:
+        '''Returns str from bool: True will be 'true', False - 'false' and None - empty string ''
+        '''
+        if val is None:
+            return ''
+
+        if bool(val) is True:
+            return 'true'
+
+        if bool(val) is False:
+            return 'false'
+
 
 def aio_return_dict(func: Callable) -> Callable:
 
@@ -177,16 +193,16 @@ def aio_return_dict(func: Callable) -> Callable:
         if kwargs.get('limit', 1) > 1:
             proxies_tuple = ()
             for prox in proxies:
-                proxies_tuple += (dict(http=prox, https=prox),)
+                proxies_tuple += prox
             return proxies_tuple
         else:
-            return dict(http=proxies[0], https=proxies[0])
+            return proxies[0]
 
     return wrapper
 
 
 @aio_return_dict
-class aioproxipy(proxipy):
+class aioproxipy(proxipy.__wrapped__):  # can inherit class only
     '''Asynchronous version of proxipy.
     '''
 
@@ -195,12 +211,13 @@ class aioproxipy(proxipy):
         self.loop = asyncio.get_event_loop()
 
     async def get_proxies(self) -> Union[dict, tuple]:
-        self.callback(self._logger.debug, f'Making request to proxy service '
-                                          'with params {self._params}')
+        await self.callback(self._logger.debug,
+                            f'Making request to proxy '
+                            'service with params {self._params}')
 
         try:
             timeout = aiohttp.ClientTimeout(sock_connect=5, sock_read=6)
-            async with aiohttp.ClientSession(tiemout=timeout) as session:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get('http://pubproxy.com/api/proxy',
                                        params=self._params) as resp:
                     self._source = await resp.text()
@@ -222,9 +239,10 @@ class aioproxipy(proxipy):
             self.proxies += ('http://{}'.format(self._to_proxies.pop()),)
 
         if self.limit > 1:
-            self.callback(self._logger.info, f'Got proxy {self.proxies}')
+            await self.callback(self._logger.info, f'Got proxy {self.proxies}')
         else:
-            self.callback(self._logger.info, f'Got proxy {self.proxies[0]}')
+            await self.callback(self._logger.info,
+                                f'Got proxy {self.proxies[0]}')
 
         return self.proxies
 
