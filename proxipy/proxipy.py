@@ -76,7 +76,7 @@ class proxipy:
 
     '''
 
-    def __init__(self, type_: str='http', https: bool=True, last_check: int=60,
+    def __init__(self, type_: str='http', https: bool=None, last_check: int=60,
                  limit: int=1, country: str=None, port: int=None, **kwargs):
         self._logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ class proxipy:
                             referrer=self.stringify(self.referrer),
                             format=self.format)
 
-    def get_proxies(self) -> Union[dict, tuple]:
+    def get_proxies(self) -> tuple:
         '''Actually making request to proxy service. **NOT** an interface, use just :class:`proxipy.proxipy`.
 
            :raises: :class:`ServiceUnavailable`, if can't connect to proxy service.
@@ -172,8 +172,7 @@ class proxipy:
         return self.proxies
 
     def stringify(self, val: Union[bool, None]) -> str:
-        '''Returns str from bool: True will be 'true', False - 'false' and None - empty string ''
-        '''
+        '''Returns ``str`` from ``bool``: ``True`` will be 'true', ``False`` - 'false' and ``None`` - empty string '''
         if val is None:
             return ''
 
@@ -187,7 +186,7 @@ class proxipy:
 def aio_return_dict(func: Callable) -> Callable:
 
     @wraps(func)
-    async def wrapper(*args, **kwargs) -> Union[dict, tuple]:
+    async def wrapper(*args, **kwargs) -> Union[str, tuple]:
         proxies = await func(*args, **kwargs).get_proxies()
 
         if kwargs.get('limit', 1) > 1:
@@ -202,15 +201,15 @@ def aio_return_dict(func: Callable) -> Callable:
 
 
 @aio_return_dict
-class aioproxipy(proxipy.__wrapped__):  # can inherit class only
-    '''Asynchronous version of proxipy.
-    '''
+class aioproxipy(proxipy.__wrapped__):  # Can inherit class only
+    '''*Asynchronous* version of proxipy. Applies all the same args as :class:`proxipy.proxipy`'''
 
     def __init__(self, *args, **kwargs):
+
         super().__init__(*args, **kwargs)
         self.loop = asyncio.get_event_loop()
 
-    async def get_proxies(self) -> Union[dict, tuple]:
+    async def get_proxies(self) -> tuple:
         await self.callback(self._logger.debug,
                             f'Making request to proxy '
                             'service with params {self._params}')

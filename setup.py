@@ -12,7 +12,9 @@ from setuptools.command.test import test as TestCommand
 REQUIRES_PYTHON = '>=3.5'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['requests==2.19.1']
+REQUIRED = ['requests==2.19.1',
+            'aiohttp==3.4.4'
+            ]
 TESTS_REQUIRE = ['pytest==3.7.1']
 
 # What packages are optional?

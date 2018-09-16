@@ -5,13 +5,13 @@ name = "pypi"
 
 [packages]
 requests = "*"
-pytest = "*"
-sphinx = "*"
-tox = "*"
-"flake8" = "*"
-pytest-cov = "*"
-alabaster = "*"
 aiohttp = "*"
+pytest = "*"
+pytest-cov = "*"
+"flake8" = "*"
+tox = "*"
+sphinx = "*"
+alabaster = "*"
 
 [dev-packages]
 proxipy = {editable = true, path = "."}
